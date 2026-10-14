@@ -15,19 +15,6 @@ $instructions =
     "PubMed links use KB's institutional LinkOut.\n" .
     "KU/KB login and library access may be required.\n";
 
-function maybeRefreshAllowlist(): void {
-    $script = __DIR__ . '/update_allowlist.php';
-    $stamp = __DIR__ . '/data/last_attempt';
-    clearstatcache(true, $stamp);
-    if (is_file($stamp) && time() - (filemtime($stamp) ?: 0) < 86400) return;
-    if (!is_file($script) || !function_exists('exec')) return;
-    // The CLI updater itself takes an exclusive nonblocking lock before touching the timestamp.
-    $php = '/usr/bin/php';
-    if (!is_executable($php)) return;
-    @exec(escapeshellarg($php) . ' ' . escapeshellarg($script)
-        . ' </dev/null >/dev/null 2>&1 &');
-}
-
 $input = substr($_SERVER['REQUEST_URI'] ?? '/', 1);
 if ($input === '' || $input === '/') {
     http_response_code(200);
@@ -54,16 +41,16 @@ $input = 'https://' . $host . ($parts['path'] ?? '/')
     . (isset($parts['query']) ? '?' . $parts['query'] : '')
     . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
 
-maybeRefreshAllowlist();
-
-// Missing allowlist: fail open. Once created, enforce even if updates fail.
-$list = __DIR__ . '/data/domains.txt';
+// Static allowlist; if missing, continue redirects as requested.
+$list = __DIR__ . '/domains.txt';
 if (is_file($list)) {
     $domains = file($list, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     if ($domains !== false && count($domains) > 0) {
         $allowed = false;
         foreach ($domains as $domain) {
-            // Entries are already reduced to registrable domains using the PSL by the updater.
+            // Match exact domain or any subdomain; never a lookalike suffix.
+            $domain = strtolower(trim($domain));
+            if ($domain === '' || str_starts_with($domain, '#')) continue;
             if ($host === $domain || str_ends_with($host, '.' . $domain)) {
                 $allowed = true;
                 break;
@@ -71,7 +58,7 @@ if (is_file($list)) {
         }
         if (!$allowed) {
             http_response_code(403);
-            exit("This destination is not included in the OCLC-derived academic domain list.\n"
+            exit("This destination is not included in the academic-resource domain allowlist.\n"
                 . "Contact the site administrator if this is a legitimate research resource.\n");
         }
     }
