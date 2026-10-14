@@ -1,13 +1,13 @@
 # EZproxy Redirect
 
-A lightweight PHP redirector for institutional library access via EZproxy, with special handling for PubMed LinkOut.
+A lightweight PHP redirector for institutional library access via EZproxy, with PubMed LinkOut support.
 
-**Example:** `https://ziw.dk/www.jstor.org/stable/12345` redirects through the Royal Danish Library EZproxy. PubMed links instead open with `otool=idkdnlblib`.
+**Example:** `https://ziw.dk/www.jstor.org/stable/12345` redirects through KB's EZproxy. PubMed links use `otool=idkdnlblib` instead.
 
 ## Setup
 
-Upload `index.php`, `update_allowlist.php`, and `.htaccess` to an Apache/PHP web root (PHP 8+, cURL and DOM extensions). Ensure PHP can create and write `data/` and run `/usr/bin/php` in the background. Configure the proxy, site hostname, and institutional PubMed `otool` in `index.php`.
+Upload `index.php`, `domains.txt`, and `.htaccess` to an Apache/PHP web root (PHP 8+). Adjust the proxy, site hostname, and PubMed `otool` in `index.php`.
 
-The first redirect after 24 hours starts a background OCLC allowlist refresh. A missing list does not block redirects; a failed update retains the last list. Generated files are ignored by Git and blocked from web access by `.htaccess`.
+`domains.txt` is a generous static allowlist of academic-resource domains, informed by public EZproxy configuration examples and supplemented manually. Subdomains are accepted. Edit the file to add resources. No updater, cron, database, or background process is required. If the list is missing, redirects remain available.
 
-**Note:** The OCLC documentation scraper and background execution require testing on the deployment server. OCLC's published stanzas are not a guarantee that an institution has enabled a resource.
+The list is not OCLC-certified and does not represent KB's active subscriptions or guarantee that every listed domain is safe.
